@@ -12,22 +12,31 @@ st.set_page_config(
 @st.cache_data(ttl=600)  # Caches results for 10 minutes
 def fetch_programming_posts(tag="programming", per_page=15):
     url = "https://dev.to"
-    # Fallback to general 'programming' if no specific sub-tag is chosen
-    api_tag = tag if tag else "programming"
     params = {
         "per_page": per_page,
-        "tag": api_tag.lower()
+        "tag": tag.lower()
     }
         
     try:
         response = requests.get(url, params=params, timeout=10)
-        if response.status_code == 200:
-            return response.json()
-        else:
-            st.error(f"Failed to fetch data from API. Status code: {response.status_code}")
-            return []
+        
+        # This throws an exception automatically if the server returns a 4xx or 5xx error
+        response.raise_for_status() 
+        
+        # Safe execution now that status code is guaranteed 200
+        return response.json()
+        
+    except requests.exceptions.HTTPError as http_err:
+        st.error(f"HTTP error occurred: {http_err}")
+        # Debugging step: see what the API actually returned instead of JSON
+        with st.expander("Show Server Raw Response"):
+            st.code(response.text[:500], language="html")
+        return []
+    except ValueError:
+        st.error("The API server returned a successful status code, but the payload wasn't valid JSON.")
+        return []
     except Exception as e:
-        st.error(f"An error occurred: {e}")
+        st.error(f"An unexpected error occurred: {e}")
         return []
 
 # 3. Sidebar UI Restricted Exclusively to Languages & Frameworks
@@ -104,32 +113,4 @@ else:
         
         # Action button to full code/article
         st.link_button("🌐 Open Source Post on Dev.to", selected_post["url"])
-@st.cache_data(ttl=600)  # Caches results for 10 minutes
-def fetch_programming_posts(tag="programming", per_page=15):
-    url = "https://dev.to"
-    params = {
-        "per_page": per_page,
-        "tag": tag.lower()
-    }
-        
-    try:
-        response = requests.get(url, params=params, timeout=10)
-        
-        # This throws an exception automatically if the server returns a 4xx or 5xx error
-        response.raise_for_status() 
-        
-        # Safe execution now that status code is guaranteed 200
-        return response.json()
-        
-    except requests.exceptions.HTTPError as http_err:
-        st.error(f"HTTP error occurred: {http_err}")
-        # Debugging step: see what the API actually returned instead of JSON
-        with st.expander("Show Server Raw Response"):
-            st.code(response.text[:500], language="html")
-        return []
-    except ValueError:
-        st.error("The API server returned a successful status code, but the payload wasn't valid JSON.")
-        return []
-    except Exception as e:
-        st.error(f"An unexpected error occurred: {e}")
-        return []
+
