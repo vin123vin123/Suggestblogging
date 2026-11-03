@@ -106,7 +106,7 @@ else:
         st.divider()
         
         if selected_post.get("cover_image"):
-            st.image(selected_post["cover_image"], use_container_width=True)
+            st.image(selected_post["cover_image"], width="stretch")
             
         st.title(selected_post["title"])
         
